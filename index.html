@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="hi" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>सारण जिला लाइव नियंत्रण डैशबोर्ड</title>
+    <meta name="theme-color" content="#020617">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Saran Monitor">
+
+    <link rel="manifest" href="manifest.json">
+
+    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/8899/8899687.png">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/8899/8899687.png">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIlNhcmFuIExpdmUgRGFzaGJvYXJkIiwKICAic2hvcnxfbmFtZSI6ICJTYXJhbiBEYXNoIiwKICAic3RhcnRfdXJsIjogIi4iLAogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLAogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiMwZjE3MmEiLAogICJ0aGVtZV9jb2xvciI6ICIjM2I4MmY2Igp9">
+
+    <style>
+        /* Custom Scrollbars */
+        .dark-mode ::-webkit-scrollbar { width: 8px; height: 8px; }
+        .dark-mode ::-webkit-scrollbar-track { background: #090d16; }
+        .dark-mode ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 20px; border: 2px solid #090d16; }
+        .dark-mode ::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
+
+        .light-mode ::-webkit-scrollbar { width: 8px; height: 8px; }
+        .light-mode ::-webkit-scrollbar-track { background: #f1f5f9; }
+        .light-mode ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 20px; border: 2px solid #f1f5f9; }
+        .light-mode ::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
+
+        /* Navigation Style */
+        .active-nav {
+            background-color: rgba(59, 130, 246, 0.15) !important;
+            color: #3b82f6 !important;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .light-mode { background-color: #f8fafc; color: #0f172a; }
+        .light-mode .bg-card { background-color: #ffffff; border-color: #e2e8f0; }
+        .light-mode .bg-sidebar { background-color: #f1f5f9; border-color: #e2e8f0; }
+        .light-mode .text-white-target { color: #0f172a !important; }
+        .light-mode .text-gray-target { color: #475569 !important; }
+        
+        .dark-mode { background-color: #0f172a; color: #f8fafc; }
+        .dark-mode .bg-card { background-color: #030712; border-color: #1f2937; }
+        .dark-mode .bg-sidebar { background-color: #030712; border-color: #1f2937; }
+        .dark-mode .text-white-target { color: #ffffff !important; }
+        .dark-mode .text-gray-target { color: #94a3b8 !important; }
+
+        /* Google Sheet Wrapper Filters & Secure Overlay Protection */
+/* Google Sheet Wrapper: Isme se hidden hata kar auto kiya gaya hai */
+.google-sheet-wrapper { 
+    position: relative; 
+    width: 100%; 
+    overflow-x: auto; /* Ab agar data bada hoga to horizontal scrollbar automatic banega */
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch; /* Mobile touch swipe ko smooth banayega */
+}
+
+.dark-mode .google-sheet-wrapper iframe { 
+    filter: invert(0.9) hue-rotate(180deg); 
+}
+
+
+
+        /* Validation Style */
+        .input-error-state { border-color: #ef4444 !important; background-color: rgba(239, 68, 68, 0.05) !important; }
+    </style>
+</head>
+<body class="dark-mode font-sans transition-colors duration-300 overflow-x-hidden select-none">
+
+    <div id="native-popup-scaffold" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[100] flex justify-center items-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-3xl p-6 shadow-2xl transform transition-transform duration-200 scale-100">
+            <div class="flex items-center gap-3 mb-3">
+                <div id="popup-icon-frame" class="w-9 h-9 rounded-xl flex items-center justify-center text-sm"></div>
+                <h4 class="font-black tracking-wide text-white text-xs uppercase">सिस्टम संदेश (Alert)</h4>
+            </div>
+            <p id="popup-body-text" class="text-xs text-gray-300 leading-relaxed py-2"></p>
+            <div id="popup-actions-wrapper" class="mt-5 flex gap-2 justify-end"></div>
+        </div>
+    </div>
+
+    <div id="auth-modal-screen" class="fixed inset-0 bg-slate-950/95 backdrop-blur-xl z-50 flex justify-center items-center p-4 overflow-y-auto">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-6 shadow-2xl">
+            <div class="flex flex-col items-center text-center mb-6">
+                <div class="w-16 h-16 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white text-2xl shadow-xl mb-3">
+                    <i class="fa-solid fa-shield-halved animate-pulse"></i>
+                </div>
+                <h3 class="text-base font-black text-white">सारण जिला मॉनिटरिंग पोर्टल</h3>
+                <p class="text-[10px] text-gray-400 uppercase tracking-wider mt-0.5">जिला प्रशासन, सारण (छपरा)</p>
+            </div>
+
+            <div id="role-selection-node" class="space-y-3">
+                <label class="text-[10px] font-bold text-gray-400 block text-center mb-2 uppercase tracking-wider">कृपया अपनी लॉगिन श्रेणी चुनें</label>
+                <button onclick="switchAuthStep('public')" class="w-full bg-slate-800/60 hover:bg-blue-600 border border-slate-700/60 hover:border-blue-500 text-left p-4 rounded-2xl flex items-center justify-between transition group cursor-pointer">
+                    <div class="flex items-center gap-3.5">
+                        <span class="w-10 h-10 bg-slate-700 group-hover:bg-blue-500/30 rounded-xl flex items-center justify-center text-gray-300 group-hover:text-white"><i class="fa-solid fa-users text-sm"></i></span>
+                        <div>
+                            <span class="text-xs font-bold text-white block">आम नागरिक / पब्लिक लॉगिन</span>
+                            <span class="text-[9px] text-gray-400 group-hover:text-blue-100 block mt-0.5">डैशबोर्ड डेटा देखने के लिए।</span>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-xs text-gray-500 group-hover:text-white transition-transform group-hover:translate-x-1"></i>
+                </button>
+
+                <button onclick="switchAuthStep('govt')" class="w-full bg-slate-800/60 hover:bg-indigo-600 border border-slate-700/60 hover:border-indigo-500 text-left p-4 rounded-2xl flex items-center justify-between transition group cursor-pointer">
+                    <div class="flex items-center gap-3.5">
+                        <span class="w-10 h-10 bg-slate-700 group-hover:bg-indigo-500/30 rounded-xl flex items-center justify-center text-gray-300 group-hover:text-white"><i class="fa-solid fa-building-shield text-sm"></i></span>
+                        <div>
+                            <span class="text-xs font-bold text-white block">सरकारी अधिकारी / एडमिन लॉगिन</span>
+                            <span class="text-[9px] text-gray-400 group-hover:text-indigo-100 block mt-0.5">डैशबोर्ड मैनेज करने और लिंक बदलने के लिए।</span>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-xs text-gray-500 group-hover:text-white transition-transform group-hover:translate-x-1"></i>
+                </button>
+            </div>
+
+            <form id="metadata-form-node" class="hidden space-y-4" onsubmit="commitUserAuthentication(event)" novalidate>
+                <input type="hidden" id="user-role-input">
+                <div class="flex items-center gap-2 border-b border-slate-800 pb-2 mb-2">
+                    <button type="button" onclick="revertAuthStep()" class="text-xs text-gray-400 hover:text-white cursor-pointer"><i class="fa-solid fa-arrow-left-long"></i> पीछे जाएँ</button>
+                    <span id="form-title-badge" class="ml-auto text-[9px] px-2 py-0.5 font-bold rounded-md"></span>
+                </div>
+
+                <div class="space-y-3 max-h-[50vh] overflow-y-auto px-1">
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-400 block mb-1">पूरा नाम *</label>
+                        <input type="text" id="form-name" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-hidden focus:border-blue-500 transition-colors" placeholder="अपना नाम लिखें">
+                        <span class="text-[9px] text-red-500 font-bold hidden mt-0.5 uppercase tracking-wide error-msg-node">नाम भरना अनिवार्य है।</span>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-400 block mb-1">मोबाइल नंबर * (केवल 10 अंक)</label>
+                        <input type="tel" id="form-phone" maxlength="10" oninput="this.value=this.value.replace(/[^0-9]/g,'');" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white font-mono focus:outline-hidden focus:border-blue-500 transition-colors" placeholder="उदा. 9876543210">
+                        <span class="text-[9px] text-red-500 font-bold hidden mt-0.5 uppercase tracking-wide error-msg-node">सही 10 अंकों का मोबाइल नंबर दर्ज करें।</span>
+                    </div>
+                    <div id="email-field-block">
+                        <label class="text-[10px] font-bold text-gray-400 block mb-1">अधिकारिक ईमेल आईडी *</label>
+                        <input type="email" id="form-email" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white font-mono focus:outline-hidden focus:border-blue-500 transition-colors" placeholder="name@bihar.gov.in">
+                        <span class="text-[9px] text-red-500 font-bold hidden mt-0.5 uppercase tracking-wide error-msg-node">कृपया सही सरकारी ईमेल आईडी दर्ज करें।</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] font-bold text-gray-400 block mb-1">जिला चुनें *</label>
+                            <select id="form-district" onchange="handleDistrictChange(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2 py-2.5 text-xs text-white focus:outline-hidden focus:border-blue-500 transition-colors">
+                                <option value="">-- जिला चुनें --</option>
+                                <option value="7">अररिया</option>
+                                <option value="38">अरवाल</option>
+                                <option value="34">औरंगाबाद</option>
+                                <option value="23">बांका</option>
+                                <option value="20">बेगूसराय</option>
+                                <option value="22">भागलपुर</option>
+                                <option value="29">भोजपुर</option>
+                                <option value="30">बक्सर</option>
+                                <option value="13">दरभंगा</option>
+                                <option value="2">पूर्वी चंपारण</option>
+                                <option value="35">गया</option>
+                                <option value="15">गोपालगंज</option>
+                                <option value="37">जमुई</option>
+                                <option value="33">जहानाबाद</option>
+                                <option value="31">कैमुर</option>
+                                <option value="10">कटिहार</option>
+                                <option value="21">खगरिया</option>
+                                <option value="8">किशनगंज</option>
+                                <option value="25">लखीसराय</option>
+                                <option value="11">मधेपुरा</option>
+                                <option value="5">मधुबनी</option>
+                                <option value="24">मंगेर</option>
+                                <option value="14">मुजफ्फरपुर</option>
+                                <option value="1">नालंदा</option>
+                                <option value="36">नवादा</option>
+                                <option value="28">पटना</option>
+                                <option value="9">पूर्णिया</option>
+                                <option value="32">रोहतास</option>
+                                <option value="12">सहरसा</option>
+                                <option value="19">समस्तीपुर</option>
+                                <option value="17">सारण</option>
+                                <option value="26">शेखपुरा</option>
+                                <option value="3">शिवहर</option>
+                                <option value="4">सीतामढ़ी</option>
+                                <option value="16">सिवान</option>
+                                <option value="6">सुपौल</option>
+                                <option value="18">वैशाली</option>
+                                <option value="27">पश्चिम चंपारण</option>
+                            </select>
+                            <span class="text-[9px] text-red-500 font-bold hidden mt-0.5 uppercase tracking-wide error-msg-node">जिला का चयन करें।</span>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-gray-400 block mb-1">ब्लॉक / अंचल चुनें *</label>
+                            <select id="form-block" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2 py-2.5 text-xs text-white focus:outline-hidden focus:border-blue-500 transition-colors">
+                                <option value="">-- पहले जिला चुनें --</option>
+                            </select>
+                            <span class="text-[9px] text-red-500 font-bold hidden mt-0.5 uppercase tracking-wide error-msg-node">ब्लॉक का चयन करें।</span>
+                        </div>
+                    </div>
+                    <div id="govt-designation-block" class="hidden">
+                        <label class="text-[10px] font-bold text-gray-400 block mb-1">पद का नाम / विभाग *</label>
+                        <input type="text" id="form-designation" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-hidden focus:border-indigo-500 transition-colors" placeholder="उदा. SDO / IT Manager / CO">
+                        <span class="text-[9px] text-red-500 font-bold hidden mt-0.5 uppercase tracking-wide error-msg-node">पद का नाम भरना अनिवार्य है।</span>
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-[11px] font-bold uppercase tracking-widest py-3 rounded-xl shadow-lg mt-2 transition duration-200 cursor-pointer">
+                    डैशबोर्ड में प्रवेश करें <i class="fa-solid fa-arrow-right ml-1"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="profile-overlay-modal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-2xl z-50 hidden flex justify-center items-center p-4">
+        <div class="bg-card border w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="p-5 border-b flex justify-between items-center bg-slate-950/40">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-address-card text-blue-500 text-sm"></i>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-white-target">लॉगिन यूजर प्रोफाइल विवरण</h3>
+                </div>
+                <button onclick="toggleProfileOverlay(false)" class="text-gray-400 hover:text-red-400 w-7 h-7 bg-slate-800/40 rounded-lg flex items-center justify-center cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto space-y-6 flex-1">
+                <div class="flex items-center gap-4 border-b border-gray-800/60 pb-5">
+                    <div id="modal-avatar-node" class="w-16 h-16 rounded-2xl bg-blue-600 text-white font-black text-2xl flex items-center justify-center">U</div>
+                    <div>
+                        <h4 id="modal-profile-name" class="text-base font-black text-white-target">-</h4>
+                        <span id="modal-profile-role" class="text-[9px] font-bold px-2 py-0.5 rounded-sm">PUBLIC</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <div class="bg-slate-950/40 border border-gray-800/40 p-3 rounded-xl">
+                        <span class="text-[9px] font-bold text-gray-500 block mb-0.5">पंजीकृत मोबाइल नंबर</span>
+                        <strong id="modal-profile-phone" class="text-white-target font-mono">-</strong>
+                    </div>
+                    <div class="bg-slate-950/40 border border-gray-800/40 p-3 rounded-xl">
+                        <span class="text-[9px] font-bold text-gray-500 block mb-0.5">ईमेल आईडी</span>
+                        <strong id="modal-profile-email" class="text-white-target font-mono break-all">-</strong>
+                    </div>
+                    <div class="bg-slate-950/40 border border-gray-800/40 p-3 rounded-xl">
+                        <span class="text-[9px] font-bold text-gray-500 block mb-0.5">जिला अधिकार क्षेत्र</span>
+                        <strong id="modal-profile-district" class="text-white-target">-</strong>
+                    </div>
+                    <div class="bg-slate-950/40 border border-gray-800/40 p-3 rounded-xl">
+                        <span class="text-[9px] font-bold text-gray-500 block mb-0.5">ब्लॉक / अंचल क्षेत्र</span>
+                        <strong id="modal-profile-block" class="text-white-target">-</strong>
+                    </div>
+                    <div id="modal-designation-wrapper" class="bg-slate-950/40 border border-gray-800/40 p-3 rounded-xl col-span-1 md:col-span-2 hidden">
+                        <span class="text-[9px] font-bold text-gray-500 block mb-0.5">अधिकारिक पद का नाम</span>
+                        <strong id="modal-profile-designation" class="text-white-target">-</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 bg-slate-950/40 border-t flex gap-3">
+                <button onclick="toggleProfileOverlay(false)" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white-target text-[10px] font-bold py-3 rounded-xl border transition cursor-pointer">डैशबोर्ड पर वापस जाएँ</button>
+                <button onclick="destroySessionTerminalTrigger()" class="flex-1 bg-rose-950/40 hover:bg-rose-600 border border-rose-800/60 hover:border-rose-500 text-rose-400 hover:text-white text-[10px] font-bold py-3 rounded-xl transition duration-200 cursor-pointer"><i class="fa-solid fa-power-off mr-1"></i> लॉगआउट / बाहर निकलें</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="timeout-expiry-modal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-xl z-50 hidden flex justify-center items-center p-4">
+        <div class="bg-slate-900 border border-rose-900/60 w-full max-w-sm rounded-3xl p-6 text-center shadow-2xl">
+            <div class="w-14 h-14 bg-rose-950/40 border border-rose-800 text-rose-500 rounded-full flex items-center justify-center text-xl mx-auto mb-3 animate-bounce">
+                <i class="fa-solid fa-hourglass-end"></i>
+            </div>
+            <h3 class="text-sm font-bold text-white">लॉगिन सत्र समाप्ति चेतावनी!</h3>
+            <p class="text-[11px] text-gray-400 mt-1">सुरक्षा कारणों से, यदि आप 10 मिनट तक कोई गतिविधि नहीं करते हैं, तो आपको दोबारा लॉगिन करना होगा। कृपया चुनें:</p>
+            <div class="mt-5 flex flex-col gap-2">
+                <button onclick="extendSessionLifeCycle()" class="w-full bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold py-2.5 rounded-xl transition cursor-pointer">लॉगिन जारी रखें (Extend)</button>
+                <button onclick="terminateSessionGracefully()" class="w-full bg-slate-800 hover:bg-slate-700 text-gray-300 text-[10px] font-bold py-2.5 rounded-xl transition cursor-pointer">अभी बंद करें (Logout)</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="global-loader" class="fixed inset-0 bg-slate-950 z-50 flex flex-col justify-center items-center transition-opacity duration-500">
+        <div class="relative w-20 h-20 mb-4">
+            <div class="absolute inset-0 rounded-full border-4 border-t-blue-500 border-r-transparent border-b-slate-800 border-l-transparent animate-spin"></div>
+            <i class="fa-solid fa-chart-line text-xl text-blue-500 absolute inset-0 flex justify-center items-center animate-pulse"></i>
+        </div>
+        <h2 class="text-xs font-bold text-white animate-pulse uppercase tracking-wider">सारण लाइव डैशबोर्ड शुरू हो रहा है...</h2>
+    </div>
+
+    <div id="section-loader" class="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-40 flex flex-col justify-center items-center hidden">
+        <div class="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+        <p class="text-[10px] font-bold text-blue-400">विभागीय डेटा लोड हो रहा है...</p>
+    </div>
+
+    <div id="network-toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 transform translate-y-24 opacity-0 transition-all duration-300 max-w-sm w-[92%] text-[10px] font-bold tracking-wider uppercase">
+        <i id="toast-icon" class="fa-solid text-xs"></i>
+        <span id="toast-msg"></span>
+    </div>
+
+
+    <div class="flex h-screen overflow-hidden">
+        
+        <aside id="sidebar-panel" class="w-64 bg-sidebar border-r flex flex-col justify-between fixed md:static inset-y-0 left-0 transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-30 shadow-2xl md:shadow-none">
+            <div class="p-4 overflow-y-auto max-h-[85vh]">
+                <div class="flex items-center justify-between mb-6 border-b border-gray-800/50 pb-4">
+                    <div class="flex items-center gap-2.5">
+                        <img src="https://cdn-icons-png.flaticon.com/512/8899/8899687.png" class="w-6 h-7 object-contain brightness-200" alt="Emblem">
+                        <div>
+                            <h2 class="font-bold text-xs text-white-target">सारण लाइव पोर्टल</h2>
+                            <span class="text-[9px] font-bold text-gray-500 block">बिहार सरकार</span>
+                        </div>
+                    </div>
+                    <button onclick="toggleSidebar()" class="md:hidden text-gray-400 p-1 hover:text-red-400 cursor-pointer"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+                
+                <nav class="space-y-1" id="spy-navigation">
+                    <a href="#revenue-sec" class="nav-item flex items-center gap-3 px-3.5 py-3 text-[10px] font-bold uppercase tracking-wider rounded-xl text-gray-400 hover:bg-blue-500/5 transition active-nav">
+                        <i class="fa-solid fa-gavel w-4 text-center text-amber-500"></i> 1. राजस्व विभाग (Revenue)
+                    </a>
+                    <a href="#rtps-sec" class="nav-item flex items-center gap-3 px-3.5 py-3 text-[10px] font-bold uppercase tracking-wider rounded-xl text-gray-400 hover:bg-blue-500/5 transition">
+                        <i class="fa-solid fa-users-gear w-4 text-center text-purple-500"></i> 2. लोक सेवा (RTPS)
+                    </a>
+                    <a href="#social-sec" class="nav-item flex items-center gap-3 px-3.5 py-3 text-[10px] font-bold uppercase tracking-wider rounded-xl text-gray-400 hover:bg-blue-500/5 transition">
+                        <i class="fa-solid fa-heart-pulse w-4 text-center text-emerald-500"></i> 3. सामाजिक सुरक्षा पेंशन
+                    </a>
+                    <a href="#icds-sec" class="nav-item flex items-center gap-3 px-3.5 py-3 text-[10px] font-bold uppercase tracking-wider rounded-xl text-gray-400 hover:bg-blue-500/5 transition">
+                        <i class="fa-solid fa-baby-carriage w-4 text-center text-pink-500"></i> 4. बाल विकास (ICDS)
+                    </a>
+                    <a href="#pmay-sec" class="nav-item flex items-center gap-3 px-3.5 py-3 text-[10px] font-bold uppercase tracking-wider rounded-xl text-gray-400 hover:bg-blue-500/5 transition">
+                        <i class="fa-solid fa-house-chimney w-4 text-center text-cyan-500"></i> 5. आवास योजना (PMAY-G)
+                    </a>
+                    <a href="#prd-sec" class="nav-item flex items-center gap-3 px-3.5 py-3 text-[10px] font-bold uppercase tracking-wider rounded-xl text-gray-400 hover:bg-blue-500/5 transition">
+                        <i class="fa-solid fa-building-columns w-4 text-center text-teal-500"></i> 6. पंचायती राज विभाग (PRD)
+                    </a>
+                </nav>
+            </div>
+            
+            <div class="p-3.5 border-t border-gray-800/50 flex items-center justify-between bg-slate-950/20">
+                <span class="text-[9px] font-bold text-gray-400">थीम बदलें</span>
+                <button onclick="toggleTheme()" class="w-9 h-9 rounded-xl bg-card border flex items-center justify-center text-amber-500 shadow-sm transition hover:scale-105 active:scale-95 cursor-pointer">
+                    <i id="theme-icon" class="fa-solid fa-sun"></i>
+                </button>
+            </div>
+        </aside>
+
+        <div class="flex-1 flex flex-col overflow-y-auto" id="main-content-scroll-box">
+            
+            <header class="bg-card/70 backdrop-blur sticky top-0 z-20 border-b px-4 md:px-6 py-3 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()" class="md:hidden text-gray-400 p-2 hover:bg-gray-800/30 rounded-xl cursor-pointer"><i class="fa-solid fa-bars-staggered text-lg"></i></button>
+                    <div>
+                        <h1 class="text-sm md:text-base font-bold text-white-target">दैनिक समीक्षा नियंत्रण-पट्ट</h1>
+                        <p class="text-[9px] text-gray-400 uppercase tracking-wide">सारण, जिला प्रशासन (बिहार सरकार)</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <div class="hidden sm:flex items-center gap-2 text-[9px] font-bold bg-slate-950/40 border px-3 py-1.5 rounded-xl shadow-inner">
+                        <span id="pulse-dot" class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                        <span id="status-label" class="text-gray-300">सर्वर कनेक्टेड</span>
+                    </div>
+                    <button onclick="toggleProfileOverlay(true)" id="user-avatar-trigger" class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-black text-xs flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition cursor-pointer">U</button>
+                </div>
+            </header>
+
+            <main class="p-4 md:p-6 space-y-12 max-w-7xl w-full mx-auto pb-24">
+                
+                <section id="revenue-sec" class="bg-card border rounded-2xl shadow-xl overflow-hidden scroll-mt-20">
+                    <div class="p-4 border-b bg-gradient-to-r from-amber-500/5 to-transparent">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 bg-amber-500/10 text-amber-500 rounded-xl flex items-center justify-center text-xs border border-amber-500/20"><i class="fa-solid fa-gavel"></i></span>
+                            <div>
+                                <h2 class="text-xs font-bold text-white-target">1. राजस्व एवं भूमि सुधार विभाग</h2>
+                                <span class="text-[9px] text-gray-400 font-bold block">Department of Revenue & Land Reforms</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-1 google-sheet-wrapper min-h-[500px]">
+                        <iframe class="w-full rounded-xl border border-transparent lazy-iframe" data-src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQX5HiDP5Ji9-oBFTBrFTCptbF6xvPqMCF3hjyp_Yozy0FA7Mb9xdL_IQjYGIbTuj2CwNzeVc64fsel/pubhtml?gid=0&amp;single=true&amp;widget=true&amp;headers=false" height="750px" title="Revenue"></iframe>
+                    </div>
+                </section>
+
+                <section id="rtps-sec" class="bg-card border rounded-2xl shadow-xl overflow-hidden scroll-mt-20">
+                    <div class="p-4 border-b bg-gradient-to-r from-purple-500/5 to-transparent">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 bg-purple-500/10 text-purple-500 rounded-xl flex items-center justify-center text-xs border border-purple-500/20"><i class="fa-solid fa-users-gear"></i></span>
+                            <div>
+                                <h2 class="text-xs font-bold text-white-target">2. लोक सेवाओं का अधिकार (RTPS) पोर्टल</h2>
+                                <span class="text-[9px] text-gray-400 font-bold block">Right to Public Service Monitoring</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-1 google-sheet-wrapper min-h-[500px]">
+                        <iframe class="w-full rounded-xl border border-transparent lazy-iframe" data-src="https://docs.google.com/spreadsheets/d/e/2PACX-1vTuLmi9ewtXXTjajg6XEciD7gMEmTKXUD7yxl84dpmWS5kC4NVKULPuRVijgnHLcXW3KCBBQWtddEMP/pubhtml?gid=151215494&amp;single=true&amp;widget=true&amp;headers=false" height="750px" title="RTPS"></iframe>
+                    </div>
+                </section>
+
+                <section id="social-sec" class="bg-card border rounded-2xl shadow-xl overflow-hidden scroll-mt-20">
+                    <div class="p-4 border-b bg-gradient-to-r from-emerald-500/5 to-transparent">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center text-xs border border-emerald-500/20"><i class="fa-solid fa-heart-pulse"></i></span>
+                            <div>
+                                <h2 class="text-xs font-bold text-white-target">3. सामाजिक सुरक्षा एवं पेंशन कल्याण विभाग</h2>
+                                <span class="text-[9px] text-gray-400 font-bold block">Social Security & Pension Welfare Department</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-1 google-sheet-wrapper min-h-[500px]">
+                        <iframe class="w-full rounded-xl border border-transparent lazy-iframe" data-src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQB9jK0rnPAblkb6qO9zagXx4Yd-qsCsOALOm1lqJecg5ytZcMJlxItFGt1RaGjeOOkR4zlrVRhoE7B/pubhtml?gid=0&single=true&widget=true&headers=false" height="750px" title="Social Security"></iframe>
+                    </div>
+                </section>
+
+                <section id="icds-sec" class="bg-card border rounded-2xl shadow-xl overflow-hidden scroll-mt-20">
+                    <div class="p-4 border-b bg-gradient-to-r from-pink-500/5 to-transparent">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 bg-pink-500/10 text-pink-400 rounded-xl flex items-center justify-center text-xs border border-pink-500/20"><i class="fa-solid fa-baby-carriage"></i></span>
+                            <div>
+                                <h2 class="text-xs font-bold text-white-target">4. समाज कल्याण विभाग (ICDS) आंगनबाड़ी समीक्षा</h2>
+                                <span class="text-[9px] text-gray-400 font-bold block">Integrated Child Development Services Analytics</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-1 google-sheet-wrapper min-h-[500px]">
+                        <iframe class="w-full rounded-xl border border-transparent lazy-iframe" data-src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSZVt2fEc_tTEGSUgR_cGSx2IV-2Em5EzqQgyok6DNaUNK-IB71VgjB7FogE-hQ4Z-KyFW9p67zp7kW/pubhtml?gid=1608938740&single=true&widget=true&headers=false" height="750px" title="ICDS"></iframe>
+                    </div>
+                </section>
+
+                <section id="pmay-sec" class="bg-card border rounded-2xl shadow-xl overflow-hidden scroll-mt-20">
+                    <div class="p-4 border-b bg-gradient-to-r from-cyan-500/5 to-transparent">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 bg-cyan-500/10 text-cyan-500 rounded-xl flex items-center justify-center text-xs border border-cyan-500/20"><i class="fa-solid fa-house-chimney"></i></span>
+                            <div>
+                                <h2 class="text-xs font-bold text-white-target">5. ग्रामीण विकास विभाग (PMAY-G) आवास योजना</h2>
+                                <span class="text-[9px] text-gray-400 font-bold block">Pradhan Mantri Awas Yojana - Gramin Analytics</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-1 google-sheet-wrapper min-h-[500px]">
+                        <iframe class="w-full rounded-xl border border-transparent lazy-iframe" data-src="https://docs.google.com/spreadsheets/d/e/2PACX-1vS_Y6yfjOMRmmbYOYMCouUNIapfXLKNc4p0-QARAHsBO-kG_l4Fqr3lhUP1ZosBYXGs1WISVrHYr9oZ/pubhtml?gid=1064337690&amp;single=true&amp;widget=true&amp;headers=false" height="750px" title="PMAY"></iframe>
+                    </div>
+                </section>
+
+                <section id="prd-sec" class="bg-card border rounded-2xl shadow-xl overflow-hidden scroll-mt-20">
+                    <div class="p-4 border-b bg-gradient-to-r from-teal-500/5 to-transparent flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 bg-teal-500/10 text-teal-500 rounded-xl flex items-center justify-center text-xs border border-teal-500/20"><i class="fa-solid fa-building-columns"></i></span>
+                            <div>
+                                <h2 class="text-xs font-bold text-white-target">6. पंचायती राज विभाग (PRD डैशबोर्ड)</h2>
+                                <span class="text-[9px] text-gray-400 font-bold block">Panchayati Raj Department Progress Monitor</span>
+                            </div>
+                        </div>
+                        
+                        <div id="admin-url-injector-panel" class="w-full sm:w-auto max-w-sm ml-auto hidden">
+                            <div class="flex gap-1.5 bg-slate-950 p-1 rounded-xl border border-gray-800/80">
+                                <input type="url" id="prd-url-injector-input" placeholder="नया गूगल शीट लिंक यहाँ पेस्ट करें..." class="bg-transparent text-[10px] px-2 py-1 text-white focus:outline-hidden w-full font-mono">
+                                <button onclick="executePrdLinkInjectionStream()" class="bg-teal-600 hover:bg-teal-500 text-white text-[9px] font-bold px-3 py-1.5 rounded-lg whitespace-nowrap cursor-pointer">लिंक लोड करें</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-1 google-sheet-wrapper min-h-[520px] relative">
+                        <iframe id="prd-live-iframe" class="w-full rounded-xl border border-transparent lazy-iframe" data-src="about:blank" height="750px" title="PRD Framework"></iframe>
+                        
+                        <div id="prd-placeholder-slate" class="absolute inset-0 flex flex-col justify-between bg-slate-950 p-6 z-10 transition-all duration-300">
+                            
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-800/80 pb-4 gap-2">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-teal-950/60 border border-teal-500/30 flex items-center justify-center text-teal-400">
+                                        <i class="fa-solid fa-network-wired text-base animate-pulse"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-xs font-bold text-white">saran.nic.in डिफ़ॉल्ट डेटा हब</h4>
+                                        <p class="text-[9px] text-gray-500 mt-0.5">जिला पंचायत अधिकारिक मुख्य सर्वर रिकॉर्ड ग्रिड</p>
+                                    </div>
+                                </div>
+                                <span class="text-[8px] bg-teal-500/10 text-teal-400 border border-teal-500/20 px-2.5 py-1 rounded-md font-bold uppercase">Saran Domain Active</span>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 my-auto py-4">
+                                <div class="bg-slate-900/40 border border-slate-800/60 p-4 rounded-xl flex flex-col justify-between hover:bg-slate-900/80 transition shadow-xs">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <span class="text-[9px] font-bold text-gray-400">कुल अंचल / ब्लॉक संख्या</span>
+                                        <i class="fa-solid fa-map-location-dot text-teal-500/60 text-xs"></i>
+                                    </div>
+                                    <div>
+                                        <span class="text-xl font-mono font-bold text-white block">20+ अंचल</span>
+                                        <span class="text-[8px] text-gray-500 block mt-0.5">समीक्षाधीन प्रशासनिक क्षेत्र</span>
+                                    </div>
+                                </div>
+
+                                <div class="bg-slate-900/40 border border-slate-800/60 p-4 rounded-xl flex flex-col justify-between hover:bg-slate-900/80 transition shadow-xs">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <span class="text-[9px] font-bold text-gray-400">योजना निष्पादन दर (Average)</span>
+                                        <i class="fa-solid fa-circle-check text-emerald-500/60 text-xs"></i>
+                                    </div>
+                                    <div>
+                                        <span class="text-xl font-mono font-bold text-emerald-400 block">94.2%</span>
+                                        <span class="text-[8px] text-gray-500 block mt-0.5">सफलतापूर्वक पूर्ण विकास कार्य</span>
+                                    </div>
+                                </div>
+
+                                <div class="bg-slate-900/40 border border-slate-800/60 p-4 rounded-xl flex flex-col justify-between hover:bg-slate-900/80 transition shadow-xs">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <span class="text-[9px] font-bold text-gray-400">सक्रिय ग्राम पंचायतें</span>
+                                        <i class="fa-solid fa-trowel-bricks text-amber-500/60 text-xs"></i>
+                                    </div>
+                                    <div>
+                                        <span class="text-xl font-mono font-bold text-white block">330</span>
+                                        <span class="text-[8px] text-gray-500 block mt-0.5">निरीक्षण पाइपलाइन लाइव</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-slate-900 border border-dashed border-slate-800 p-3 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+                                <div class="flex items-center gap-2.5">
+                                    <i class="fa-solid fa-info-circle text-teal-500 text-sm"></i>
+                                    <p class="text-[9px] text-gray-400 max-w-2xl leading-relaxed">
+                                        डिफ़ॉल्ट रूप से यहाँ <strong class="text-teal-400">saran.nic.in</strong> द्वारा प्रमाणित आधिकारिक डेटा सिंक रहता है। जिला स्तर के एडमिन अधिकारी अपनी सुविधानुसार ऊपर दिए गए इनपुट बॉक्स का उपयोग करके लाइव कस्टम लिंक इंजेक्ट कर सकते हैं।
+                                    </p>
+                                </div>
+                                <span class="text-[8px] text-gray-600 font-mono tracking-widest shrink-0">DATA HUB v4.0</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+
+            <footer class="mt-auto bg-card border-t border-gray-800/40 p-6 shadow-2xl">
+                <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 pb-6 border-b border-gray-800/40 text-xs text-gray-400">
+                    
+              <div class="space-y-2.5">
+    <h4 class="text-[10px] font-bold text-white-target uppercase tracking-wider border-b border-slate-800 pb-1.5">
+        <i class="fa-solid fa-link text-blue-500 mr-1"></i> विभागीय आधिकारिक डैशबोर्ड लिंक्स (1-10)
+    </h4>
+
+    <ul class="space-y-1 text-[10px] text-gray-400 font-medium">
+        <li>
+            <a href="https://land.bihar.gov.in" target="_blank" class="hover:text-amber-500 transition block">
+                1. राजस्व एवं भूमि सुधार विभाग (Official Website)
+            </a>
+        </li>
+
+        <li>
+            <a href="https://serviceonline.bihar.gov.in/" target="_blank" class="hover:text-purple-500 transition block">
+                2. RTPS बिहार सेवा आधिकारिक पोर्टल
+            </a>
+        </li>
+
+        <li>
+            <a href="https://state.bihar.gov.in/socialwelfare/CitizenHome.html" target="_blank" class="hover:text-emerald-500 transition block">
+                3. सामाजिक सुरक्षा पेंशन योजना प्रभाग पोर्टल
+            </a>
+        </li>
+
+        <li>
+            <a href="https://icdsaangan.bihar.gov.in/" target="_blank" class="hover:text-pink-400 transition block">
+                4. बाल विकास सेवा (ICDS Anganwadi) पोर्टल
+            </a>
+        </li>
+
+        <li>
+            <a href="https://report.pmayg.dord.gov.in/netiay/newreport.aspx" target="_blank" class="hover:text-cyan-500 transition block">
+                5. PMAY-G प्रधानमंत्री आवास योजना ग्रामीण रिपोर्ट
+            </a>
+        </li>
+
+        <li>
+            <a href="https://state.bihar.gov.in/biharprd/CitizenHome.html" target="_blank" class="hover:text-teal-400 transition block">
+                6. पंचायती राज विभाग (PRD) बिहार शासन
+            </a>
+        </li>
+
+        <li>
+            <a href="https://state.bihar.gov.in/educationbihar/CitizenHome.html" target="_blank" class="hover:text-yellow-400 transition block">
+                7. शिक्षा विभाग बिहार सरकार
+            </a>
+        </li>
+
+        <li>
+            <a href="https://state.bihar.gov.in/health/CitizenHome.html" target="_blank" class="hover:text-red-400 transition block">
+                8. स्वास्थ्य विभाग बिहार सरकार
+            </a>
+        </li>
+
+        <li>
+            <a href="https://state.bihar.gov.in/transport/CitizenHome.html" target="_blank" class="hover:text-orange-400 transition block">
+                9. परिवहन विभाग बिहार सरकार
+            </a>
+        </li>
+
+        <li>
+            <a href="https://police.bihar.gov.in/" target="_blank" class="hover:text-sky-400 transition block">
+                10. बिहार पुलिस आधिकारिक पोर्टल
+            </a>
+        </li>
+    </ul>
+</div>
+
+<div class="space-y-2.5">
+    <h4 class="text-[10px] font-bold text-white-target uppercase tracking-wider border-b border-slate-800 pb-1.5">
+        <i class="fa-solid fa-building text-indigo-500 mr-1"></i> महत्वपूर्ण सरकारी वेबसाइट लिंक्स
+    </h4>
+
+    <ul class="space-y-1 text-[10px] text-gray-400 font-medium">
+
+        <li>
+            <a href="https://saran.nic.in" target="_blank" class="hover:text-blue-400 transition block">
+                सारण जिला आधिकारिक एन.आई.सी वेब पोर्टल (saran.nic.in)
+            </a>
+        </li>
+
+        <li>
+            <a href="https://state.bihar.gov.in" target="_blank" class="hover:text-indigo-400 transition block">
+                बिहार राज्य मुख्य शासी इंजन आधिकारिक पोर्टल
+            </a>
+        </li>
+
+        <li>
+            <a href="https://state.bihar.gov.in/gad/CitizenHome.html" target="_blank" class="hover:text-blue-500 transition block">
+                सामान्य प्रशासन विभाग (GAD Bihar)
+            </a>
+        </li>
+
+        <li>
+            <a href="https://cm.bihar.gov.in/users/home1.aspx" target="_blank" class="hover:text-green-400 transition block">
+                मुख्यमंत्री सचिवालय बिहार
+            </a>
+        </li>
+
+        <li>
+            <a href="https://biharbhumi.bihar.gov.in/Biharbhumi/" target="_blank" class="hover:text-amber-400 transition block">
+                बिहार भूमि एवं दाखिल-खारिज पोर्टल
+            </a>
+        </li>
+
+        <li>
+            <a href="https://dbtagriculture.bihar.gov.in" target="_blank" class="hover:text-lime-400 transition block">
+                DBT Agriculture बिहार किसान पोर्टल
+            </a>
+        </li>
+
+        <li>
+            <a href="https://state.bihar.gov.in/urban" target="_blank" class="hover:text-rose-400 transition block">
+                नगर विकास एवं आवास विभाग बिहार
+            </a>
+        </li>
+
+        <li>
+            <a href="https://epos.bihar.gov.in/" target="_blank" class="hover:text-orange-500 transition block">
+                खाद्य एवं उपभोक्ता संरक्षण विभाग बिहार
+            </a>
+        </li>
+
+    </ul>
+</div>
+<div class="space-y-3 md:text-right">
+    <h4 class="text-[10px] font-bold text-white-target uppercase tracking-wider border-b border-slate-800/0 pb-1.5">समीक्षा ट्रैकिंग क्लॉक</h4>
+    <div class="bg-slate-950 border border-gray-800/80 p-2.5 rounded-xl text-gray-300 font-mono text-[9px] flex items-center justify-center md:justify-end gap-2 w-full">
+        <i class="fa-regular fa-clock text-blue-500 animate-pulse"></i>
+        <span id="live-audit-timestamp">Clock Initializing...</span>
+    </div>
+    <p class="text-[9px] uppercase leading-normal">
+        <span class="text-gray-500">डेटा श्रोत: आधिकारिक सार्वजनिक पोर्टल (saran.nic.in)</span> 
+        <button onclick="showDisclaimerPopup()" class="text-amber-500 hover:text-amber-400 font-bold ml-1 underline cursor-pointer">अस्वीकरण (Disclaimer)</button>
+    </p>
+</div>
+</div>
+
+<div class="max-w-7xl mx-auto pt-4 flex flex-col sm:flex-row justify-between items-center text-[9px] font-bold text-gray-500 tracking-wider gap-2">
+    <div>पूर्ण अभिकल्पना एवं स्वतंत्र तकनीकी विकास: 
+        <button onclick="openDeveloperPortfolio()" class="text-white-target font-black hover:text-blue-400 underline cursor-pointer transition">
+            रोहित कुमार सिंह (Rohit Kumar Singh)
+        </button>
+    </div>
+    <div class="font-mono text-[8px] text-gray-600">INDEPENDENT DEVELOPER EDITION - V4.2</div>
+</div>
+<script>
+    // Function to show the Educational & Analytical Disclaimer Popup
+function showDisclaimerPopup() {
+    // Hardware dynamic pulse response
+    triggerVibration([40, 30, 40]);
+    
+    const disclaimerMessage = "यह एक गैर-आधिकारिक (Non-Official) व्यक्तिगत डैशबोर्ड है। इस वेब पेज को केवल शैक्षणिक और डेटा विश्लेषण (Data Analysis) के उद्देश्य से बनाया गया है ताकि सारण जिला और NIC पोर्टल के मॉनिटरिंग डैशबोर्ड को बेहतर ढंग से समझा और विश्लेषित किया जा सके। इस पेज को बनाने का कोई भी गलत या भ्रामक इरादा (No Bad Intention) नहीं है। यह पृष्ठ किसी भी सरकारी विभाग से प्रत्यक्ष रूप से संबद्ध नहीं है।";
+    
+    // Aapke engine ke native popup ka use kiya hai takki design match ho
+    spawnNativeAndroidPopup(
+        "महत्वपूर्ण अस्वीकरण / Disclaimer", 
+        disclaimerMessage, 
+        "info", 
+        false, 
+        null
+    );
+}
+
+// Function to open Developer Portfolio / Professional Links
+function openDeveloperPortfolio() {
+    triggerVibration(25);
+    
+    // TIP: 'https://yourportfolio.com' ki jagah apna LinkedIn ya GitHub link daal sakte hain
+    const portfolioUrl = "https://rohitsinghp.netlify.app/"; 
+    
+    spawnNativeAndroidPopup(
+        "Developer Portfolio",
+        "क्या आप डेवलपर रोहित कुमार सिंह की प्रोफाइल/पोर्टफोलियो देखना चाहते हैं?",
+        "info",
+        true,
+        (isConfirmed) => {
+            if(isConfirmed) {
+                window.open(portfolioUrl, '_blank');
+            }
+        }
+    );
+}
+</script>
+            </footer>
+        </div>
+    </div>
+
+
+  <script>
+        let audioCtx = null;
+        let sessionCountTimer = null;
+        const TEN_MINUTES_IN_MS = 10 * 60 * 1000;
+
+        function triggerVibration(vibeArray) {
+            if ("vibrate" in navigator) { navigator.vibrate(vibeArray); }
+        }
+
+        // ANDROID NATIVE POPUP ENGINE (REPLACES BROWSER ALERT & CONFIRM)
+        function spawnNativeAndroidPopup(title, message, iconType, isConfirm, resolveCallback) {
+            triggerVibration(25);
+            const wrapper = document.getElementById('native-popup-scaffold');
+            const iconFrame = document.getElementById('popup-icon-frame');
+            const bodyText = document.getElementById('popup-body-text');
+            const actionsBlock = document.getElementById('popup-actions-wrapper');
+
+            bodyText.innerText = message;
+            actionsBlock.innerHTML = ""; 
+
+            if(iconType === 'error') {
+                iconFrame.className = "w-9 h-9 rounded-xl flex items-center justify-center text-sm bg-red-950 text-red-400 border border-red-800/40";
+                iconFrame.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+            } else if(iconType === 'success') {
+                iconFrame.className = "w-9 h-9 rounded-xl flex items-center justify-center text-sm bg-emerald-950 text-emerald-400 border border-emerald-800/40";
+                iconFrame.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+            } else {
+                iconFrame.className = "w-9 h-9 rounded-xl flex items-center justify-center text-sm bg-blue-950 text-blue-400 border border-blue-800/40";
+                iconFrame.innerHTML = '<i class="fa-solid fa-shield-halved"></i>';
+            }
+
+            if(isConfirm) {
+                const cancelBtn = document.createElement('button');
+                cancelBtn.className = "px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-gray-400 text-[10px] uppercase font-bold transition cursor-pointer";
+                cancelBtn.innerText = "रद्द करें (Abort)";
+                cancelBtn.onclick = () => { wrapper.classList.add('hidden'); resolveCallback(false); };
+                actionsBlock.appendChild(cancelBtn);
+
+                const confirmBtn = document.createElement('button');
+                confirmBtn.className = "px-4 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[10px] uppercase font-bold transition cursor-pointer shadow-md";
+                confirmBtn.innerText = "पुष्टि करें (Confirm)";
+                confirmBtn.onclick = () => { wrapper.classList.add('hidden'); resolveCallback(true); };
+                actionsBlock.appendChild(confirmBtn);
+            } else {
+                const okBtn = document.createElement('button');
+                okBtn.className = "px-5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[10px] uppercase font-bold transition cursor-pointer shadow-md";
+                okBtn.innerText = "ठीक है (OK)";
+                okBtn.onclick = () => { wrapper.classList.add('hidden'); if(resolveCallback) resolveCallback(true); };
+                actionsBlock.appendChild(okBtn);
+            }
+            wrapper.classList.remove('hidden');
+        }
+
+        function runRealTimeClockEngine() {
+            const timeTargetNode = document.getElementById('live-audit-timestamp');
+            setInterval(() => {
+                const now = new Date();
+                const formattedDate = now.toLocaleDateString('hi-IN', { year: 'numeric', month: 'short', day: '2-digit' });
+                const formattedTime = now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                timeTargetNode.innerText = `समय सिंक: ${formattedDate} | ${formattedTime}`;
+            }, 1000);
+        }
+
+        // HANDLES DYNAMIC INTERACTION OF DISTRICT VS BLOCK OPTIONS
+        function handleDistrictChange(districtValue) {
+            const blockSelect = document.getElementById('form-block');
+            
+            // Resets state completely first
+            blockSelect.innerHTML = '<option value="">-- अंचल/ब्लॉक चुनें --</option>';
+            
+            // Injecting specific valid blocks only if Saran (Value: 17) is chosen
+            if (districtValue === "17") {
+                const saranBlocks = [
+                    { val: "17", name: "अमनौर" },
+                    { val: "4",  name: "बनियापुर" },
+                    { val: "18", name: "दरियापुर" },
+                    { val: "19", name: "दिघवारा" },
+                    { val: "6",  name: "एकमा" },
+                    { val: "11", name: "गरखा" },
+                    { val: "15", name: "इसuवापुर" },
+                    { val: "7",  name: "जलालपुर" },
+                    { val: "5",  name: "लाहलादपुर" },
+                    { val: "9",  name: "मकेर" },
+                    { val: "3",  name: "मांझी" },
+                    { val: "12", name: "मरहौरा" },
+                    { val: "16", name: "मशरख" },
+                    { val: "8",  name: "नागरा" },
+                    { val: "13", name: "पनापुर" },
+                    { val: "10", name: "परसा" },
+                    { val: "2",  name: "रिविलगंज" },
+                    { val: "1",  name: "सारण सदर" },
+                    { val: "20", name: "सोनपुर" },
+                    { val: "14", name: "तरैया" }
+                ];
+                
+                saranBlocks.forEach(block => {
+                    let opt = document.createElement('option');
+                    opt.value = block.val;
+                    opt.textContent = block.name;
+                    blockSelect.appendChild(opt);
+                });
+            } else {
+                blockSelect.innerHTML = '<option value="">-- इस जिले के ब्लॉक उपलब्ध नहीं हैं --</option>';
+            }
+        }
+
+        function switchAuthStep(roleSelection) {
+            document.getElementById('user-role-input').value = roleSelection;
+            document.getElementById('role-selection-node').classList.add('hidden');
+            
+            const formNode = document.getElementById('metadata-form-node');
+            const titleBadge = document.getElementById('form-title-badge');
+            const emailField = document.getElementById('email-field-block');
+            const govtBlock = document.getElementById('govt-designation-block');
+
+            formNode.classList.remove('hidden');
+            triggerVibration(25);
+            clearValidationFormattingErrors();
+
+            if (roleSelection === 'public') {
+                titleBadge.innerText = "पब्लिक एक्सेस";
+                titleBadge.className = "ml-auto text-[9px] px-2 py-0.5 font-bold rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+                emailField.classList.add('hidden');
+                govtBlock.classList.add('hidden');
+            } else {
+                titleBadge.innerText = "अधिकारी एडमिन लॉगिन";
+                titleBadge.className = "ml-auto text-[9px] px-2 py-0.5 font-bold rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20";
+                emailField.classList.remove('hidden');
+                govtBlock.classList.remove('hidden');
+            }
+        }
+
+        function revertAuthStep() {
+            document.getElementById('metadata-form-node').classList.add('hidden');
+            document.getElementById('role-selection-node').classList.remove('hidden');
+            triggerVibration(15);
+        }
+
+        function clearValidationFormattingErrors() {
+            document.querySelectorAll('#metadata-form-node input, #metadata-form-node select').forEach(element => {
+                element.classList.remove('input-error-state');
+                const errMsg = element.parentElement.querySelector('.error-msg-node');
+                if(errMsg) errMsg.classList.add('hidden');
+            });
+        }
+
+        function commitUserAuthentication(event) {
+            event.preventDefault();
+            clearValidationFormattingErrors();
+
+            const role = document.getElementById('user-role-input').value;
+            const nameNode = document.getElementById('form-name');
+            const phoneNode = document.getElementById('form-phone');
+            const emailNode = document.getElementById('form-email');
+            const districtNode = document.getElementById('form-district');
+            const blockNode = document.getElementById('form-block');
+            const designationNode = document.getElementById('form-designation');
+
+            let compilationValid = true;
+
+            if(!nameNode.value.trim()) { flagValidationError(nameNode); compilationValid = false; }
+            if(phoneNode.value.length !== 10) { flagValidationError(phoneNode); compilationValid = false; }
+            if(!districtNode.value) { flagValidationError(districtNode); compilationValid = false; }
+            if(!blockNode.value || blockNode.value === "") { flagValidationError(blockNode); compilationValid = false; }
+
+            if(role === 'govt') {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if(!emailRegex.test(emailNode.value.trim())) { flagValidationError(emailNode); compilationValid = false; }
+                if(!designationNode.value.trim()) { flagValidationError(designationNode); compilationValid = false; }
+            }
+
+            if(!compilationValid) {
+                triggerVibration([50, 50, 50]);
+                return false;
+            }
+
+            // Extracting actual localized text names from dropdown layout instead of raw numerical IDs
+            const textDistrictValue = districtNode.options[districtNode.selectedIndex].text;
+            const textBlockValue = blockNode.options[blockNode.selectedIndex] ? blockNode.options[blockNode.selectedIndex].text : "N/A";
+
+            const profileObject = {
+                role: role,
+                name: nameNode.value.trim(),
+                phone: phoneNode.value.trim(),
+                email: role === 'govt' ? emailNode.value.trim() : 'N/A',
+                district: textDistrictValue,
+                block: textBlockValue,
+                designation: role === 'govt' ? designationNode.value.trim() : 'N/A',
+                timestamp: Date.now()
+            };
+
+            // Session stored strictly for temporary state verification
+            sessionStorage.setItem('saran_active_session_token', 'true');
+            localStorage.setItem('saran_kernel_auth_v2', JSON.stringify(profileObject));
+            
+            applyUserCredentialsSystemState(profileObject);
+            document.getElementById('auth-modal-screen').classList.add('opacity-0', 'pointer-events-none');
+            
+            evaluateNetworkTopology();
+            initializeActivityTimerSequence();
+            checkAndLoadInjectedPrdLink();
+        }
+
+        function flagValidationError(inputElement) {
+            inputElement.classList.add('input-error-state');
+            const errMsg = inputElement.parentElement.querySelector('.error-msg-node');
+            if(errMsg) errMsg.classList.remove('hidden');
+        }
+
+        function applyUserCredentialsSystemState(profile) {
+            const firstLetter = profile.name.charAt(0).toUpperCase();
+            const avatarTrigger = document.getElementById('user-avatar-trigger');
+            avatarTrigger.innerText = firstLetter;
+            
+            const injectorPanel = document.getElementById('admin-url-injector-panel');
+            if(profile.role === 'govt') {
+                avatarTrigger.className = "w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white font-black text-xs flex items-center justify-center border border-indigo-400/30 cursor-pointer";
+                injectorPanel.classList.remove('hidden'); 
+            } else {
+                avatarTrigger.className = "w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-600 text-white font-black text-xs flex items-center justify-center border border-emerald-400/30 cursor-pointer";
+                injectorPanel.classList.add('hidden'); 
+            }
+
+            document.getElementById('modal-avatar-node').innerText = firstLetter;
+            document.getElementById('modal-profile-name').innerText = profile.name;
+            document.getElementById('modal-profile-role').innerText = profile.role === 'govt' ? 'GOVT ADMIN' : 'PUBLIC USER';
+            document.getElementById('modal-profile-phone').innerText = profile.phone;
+            document.getElementById('modal-profile-email').innerText = profile.email;
+            document.getElementById('modal-profile-district').innerText = profile.district;
+            document.getElementById('modal-profile-block').innerText = profile.block;
+
+            const designationWrapper = document.getElementById('modal-designation-wrapper');
+            if(profile.role === 'govt') {
+                designationWrapper.classList.remove('hidden');
+                document.getElementById('modal-profile-designation').innerText = profile.designation;
+                document.getElementById('modal-profile-role').className = "text-[9px] font-bold px-2 py-0.5 rounded-sm bg-indigo-500/20 text-indigo-400 border border-indigo-500/30";
+            } else {
+                designationWrapper.classList.add('hidden');
+                document.getElementById('modal-profile-role').className = "text-[9px] font-bold px-2 py-0.5 rounded-sm bg-emerald-500/20 text-emerald-400 border border-emerald-500/20";
+            }
+        }
+
+        // REFRESH FRIENDLY VERIFICATION & PERSISTENT SESSION RETRIEVAL
+        function verifyAuthenticationPersistence() {
+            const cachedToken = localStorage.getItem('saran_kernel_auth_v2');
+            const sessionActive = sessionStorage.getItem('saran_active_session_token');
+            
+            if (cachedToken && sessionActive) {
+                try {
+                    const parsedProfile = JSON.parse(cachedToken);
+                    applyUserCredentialsSystemState(parsedProfile);
+                    document.getElementById('auth-modal-screen').classList.add('hidden');
+                    initializeActivityTimerSequence();
+                } catch(err) {
+                    clearSessionMemory();
+                }
+            } else {
+                clearSessionMemory();
+            }
+        }
+
+        function clearSessionMemory() {
+            localStorage.removeItem('saran_kernel_auth_v2');
+            sessionStorage.removeItem('saran_active_session_token');
+        }
+
+        function toggleProfileOverlay(showOverlayState) {
+            const overlayNode = document.getElementById('profile-overlay-modal');
+            if(showOverlayState) {
+                overlayNode.classList.remove('hidden');
+                triggerVibration(15);
+            } else {
+                overlayNode.classList.add('hidden');
+            }
+        }
+
+        function destroySessionTerminalTrigger() {
+            spawnNativeAndroidPopup(
+                "लॉगआउट पुष्टीकरण",
+                "क्या आप वाकई इस डिवाइस से लॉगआउट करना चाहते हैं? लॉगआउट करने के बाद आपको दोबारा अपनी डिटेल्स भरनी होंगी।",
+                "warning",
+                true,
+                (isConfirmed) => {
+                    if(isConfirmed) {
+                        terminateSessionGracefully();
+                    }
+                }
+            );
+        }
+
+        function terminateSessionGracefully() {
+            clearSessionMemory();
+            
+            document.getElementById('profile-overlay-modal').classList.add('hidden');
+            document.getElementById('timeout-expiry-modal').classList.add('hidden');
+            
+            document.getElementById('form-name').value = "";
+            document.getElementById('form-phone').value = "";
+            document.getElementById('form-email').value = "";
+            document.getElementById('form-district').value = "";
+            document.getElementById('form-block').value = "";
+            document.getElementById('form-designation').value = "";
+            
+            const authModal = document.getElementById('auth-modal-screen');
+            authModal.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+            revertAuthStep();
+            
+            if(sessionCountTimer) clearTimeout(sessionCountTimer);
+        }
+
+        function initializeActivityTimerSequence() {
+            if(sessionCountTimer) clearTimeout(sessionCountTimer);
+            sessionCountTimer = setTimeout(() => {
+                document.getElementById('timeout-expiry-modal').classList.remove('hidden');
+                triggerVibration([200, 100, 200]);
+            }, TEN_MINUTES_IN_MS);
+        }
+
+        function extendSessionLifeCycle() {
+            document.getElementById('timeout-expiry-modal').classList.add('hidden');
+            initializeActivityTimerSequence();
+            showNetworkToastStream("bg-indigo-950 border-indigo-800 text-indigo-300", "fa-solid fa-clock-rotate-left", "आपका लॉगिन सत्र सफलतापूर्वक बढ़ा दिया गया है।");
+        }
+
+        ['click', 'scroll', 'keypress', 'touchstart'].forEach(eventName => {
+            window.addEventListener(eventName, () => {
+                const cachedToken = localStorage.getItem('saran_kernel_auth_v2');
+                if(cachedToken && document.getElementById('timeout-expiry-modal').classList.contains('hidden')) {
+                    initializeActivityTimerSequence();
+                }
+            });
+        });
+
+        // REFRESH PERSISTENT PRD LINK INJECTION METHOD
+        function executePrdLinkInjectionStream() {
+            const rawUrlInput = document.getElementById('prd-url-injector-input').value.trim();
+            
+            if(!rawUrlInput) {
+                spawnNativeAndroidPopup("त्रुटि", "यूआरएल इनपुट बॉक्स खाली नहीं हो सकता। कृपया सही लिंक डालें।", "error", false);
+                return;
+            }
+
+            triggerVibration(40);
+            
+            // Link strictly saved globally in LocalStorage so it retains even on cross refresh cycles
+            localStorage.setItem('prd_injected_stream_url', rawUrlInput);
+            
+            loadUrlIntoPrdIframe(rawUrlInput);
+        }
+
+        function loadUrlIntoPrdIframe(url) {
+            const iframeElement = document.getElementById('prd-live-iframe');
+            const placeholderSlate = document.getElementById('prd-placeholder-slate');
+
+            placeholderSlate.innerHTML = '<div class="w-8 h-8 border-4 border-t-teal-500 border-slate-800 rounded-full animate-spin mb-2"></div><span class="text-[10px] text-teal-400 font-bold uppercase">प्रशासनिक कस्टम ग्रिड लोड हो रहा है...</span>';
+            placeholderSlate.classList.remove('hidden');
+
+            iframeElement.setAttribute('data-src', url);
+            iframeElement.src = url;
+
+            iframeElement.onload = () => {
+                placeholderSlate.classList.add('hidden');
+                showNetworkToastStream("bg-teal-950 border-teal-800 text-teal-300", "fa-solid fa-circle-check", "नया पंचायती राज डैशबोर्ड लिंक सफलतापूर्वक सिंक हो गया है!");
+            };
+        }
+
+        // COMPATIBILITY MONITOR TO RUN EVERY TIME PAGE LOADS OR BOOTS UP
+        function checkAndLoadInjectedPrdLink() {
+            const persistentUrl = localStorage.getItem('prd_injected_stream_url');
+            if(persistentUrl) {
+                loadUrlIntoPrdIframe(persistentUrl);
+            }
+        }
+
+        function showNetworkToastStream(styleClasses, iconClass, messageText) {
+            const toast = document.getElementById('network-toast');
+            const icon = document.getElementById('toast-icon');
+            const msg = document.getElementById('toast-msg');
+
+            toast.className = `fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 transition-all duration-300 max-w-sm w-[92%] text-[10px] font-bold ${styleClasses} translate-y-0 opacity-100`;
+            icon.className = iconClass;
+            msg.innerText = messageText;
+
+            setTimeout(() => toast.classList.add('translate-y-24', 'opacity-0'), 3500);
+        }
+
+        function evaluateNetworkTopology() {
+            const isOnline = navigator.onLine;
+            const statusDot = document.getElementById('pulse-dot');
+            const statusLabel = document.getElementById('status-label');
+
+            if(!localStorage.getItem('saran_kernel_auth_v2')) return;
+
+            if (isOnline) {
+                statusLabel.innerText = "लाइव सिंक सक्रिय";
+                statusDot.className = "w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse";
+                showNetworkToastStream("bg-emerald-950 border-emerald-800 text-emerald-300", "fa-solid fa-wifi", "इंटरनेट चालू है! डेटा रिफ्रेश हो रहा है।");
+            } else {
+                statusLabel.innerText = "ऑफलाइन मोड";
+                statusDot.className = "w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse";
+                showNetworkToastStream("bg-rose-950 border-rose-800 text-rose-300", "fa-solid fa-plane-slash", "इंटरनेट बंद है। पुराना सेव्ड कैश डेटा प्रदर्शित हो रहा है।");
+            }
+        }
+
+        window.addEventListener('online', evaluateNetworkTopology);
+        window.addEventListener('offline', evaluateNetworkTopology);
+
+        window.addEventListener('DOMContentLoaded', () => {
+            verifyAuthenticationPersistence();
+            runRealTimeClockEngine();
+            checkAndLoadInjectedPrdLink(); // Ensures link stays operational on load
+
+            const explicitSavedTheme = localStorage.getItem('saran-core-theme') || 'dark-mode';
+            document.body.className = explicitSavedTheme + " font-sans transition-colors duration-300 overflow-x-hidden select-none";
+            evaluateAndToggleIconTrayGraphics(explicitSavedTheme);
+            
+            setTimeout(() => {
+                document.getElementById('global-loader').classList.add('opacity-0', 'pointer-events-none');
+                executeScrollSpyEngine(); mountLazyIntersectionObservers();
+            }, 1200);
+        });
+
+       function toggleTheme() {
+    // Android dynamic status bar meta tag ko select karein
+    const themeMetaTag = document.querySelector('meta[name="theme-color"]');
+    
+    if (document.body.classList.contains('dark-mode')) {
+        // 1. LIGHT MODE ACTIVATION
+        document.body.classList.replace('dark-mode', 'light-mode');
+        localStorage.setItem('saran-core-theme', 'light-mode');
+        evaluateAndToggleIconTrayGraphics('light-mode');
+        
+        // Android Top Header Color: Light mode ke liye ekdum clean white (#ffffff) ya light gray
+        if (themeMetaTag) themeMetaTag.setAttribute('content', '#f8fafc'); 
+        
+        triggerVibration([40, 30, 20]); // Cascade down vibration effect
+    } else {
+        // 2. DARK MODE ACTIVATION
+        document.body.classList.replace('light-mode', 'dark-mode');
+        localStorage.setItem('saran-core-theme', 'dark-mode');
+        evaluateAndToggleIconTrayGraphics('dark-mode');
+        
+        // Android Top Header Color: Dark mode ke liye deep dark slate blue (#020617)
+        if (themeMetaTag) themeMetaTag.setAttribute('content', '#020617');
+        
+        triggerVibration([20, 30, 40]); // Cascade up vibration effect
+    }
+}
+
+        function evaluateAndToggleIconTrayGraphics(currentThemeMode) {
+            const icon = document.getElementById('theme-icon');
+            if (currentThemeMode === 'light-mode') {
+                icon.className = "fa-solid fa-moon text-slate-800";
+                icon.parentElement.className = "w-9 h-9 rounded-xl bg-card border flex items-center justify-center text-slate-800 shadow-sm";
+            } else {
+                icon.className = "fa-solid fa-sun text-amber-500";
+                icon.parentElement.className = "w-9 h-9 rounded-xl bg-card border flex items-center justify-center text-amber-500 shadow-sm";
+            }
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar-panel');
+            if(sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full'); triggerVibration(30);
+            } else { sidebar.classList.add('-translate-x-full'); }
+        }
+
+        document.querySelectorAll('#spy-navigation a').forEach(anchorNode => {
+            anchorNode.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = anchorNode.getAttribute('href');
+                const targetDomElement = document.querySelector(targetId);
+                document.getElementById('section-loader').classList.remove('hidden');
+                triggerVibration(15);
+                setTimeout(() => {
+                    document.getElementById('section-loader').classList.add('hidden');
+                    if (window.innerWidth < 768) toggleSidebar(); 
+                    targetDomElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 400);
+            });
+        });
+
+        function executeScrollSpyEngine() {
+            const sections = document.querySelectorAll('main section');
+            const navItems = document.querySelectorAll('.nav-item');
+            const scrollBox = document.getElementById('main-content-scroll-box');
+            
+            scrollBox.addEventListener('scroll', () => {
+                let activeId = "";
+                sections.forEach(sec => {
+                    if (scrollBox.scrollTop >= (sec.offsetTop - 160)) {
+                        activeId = sec.getAttribute('id');
+                    }
+                });
+                navItems.forEach(item => {
+                    item.classList.remove('active-nav');
+                    if (item.getAttribute('href') === `#${activeId}`) item.classList.add('active-nav');
+                });
+            });
+        }
+
+        function mountLazyIntersectionObservers() {
+            const lazyFrames = document.querySelectorAll('.lazy-iframe');
+            const observer = new IntersectionObserver((entries, obsRef) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const frame = entry.target;
+                        if(frame.getAttribute('data-src') === "about:blank") return;
+
+                        const container = frame.parentElement;
+                        const loader = document.createElement('div');
+                        loader.className = "absolute inset-0 bg-slate-900/90 flex flex-col justify-center items-center rounded-xl transition-opacity duration-500 z-10";
+                        loader.innerHTML = '<div class="w-7 h-7 border-4 border-t-blue-500 border-slate-800 rounded-full animate-spin mb-2"></div><span class="text-[9px] text-gray-400 font-bold uppercase">डेटा ग्रिड लोड हो रहा है...</span>';
+                        container.appendChild(loader);
+
+                        frame.src = frame.getAttribute('data-src');
+                        frame.onload = () => {
+                            loader.classList.add('opacity-0');
+                            setTimeout(() => loader.remove(), 400);
+                        };
+                        obsRef.unobserve(frame);
+                    }
+                });
+            }, { root: document.getElementById('main-content-scroll-box'), rootMargin: '150px' });
+            lazyFrames.forEach(f => observer.observe(f));
+        }
+    </script>
+    <script>
+        // Disable Right-Click (Context Menu) with User Alert Toast
+window.addEventListener('contextmenu', (event) => {
+    event.preventDefault(); // Right-click ko rokta hai
+    triggerVibration([80, 50]); // Mobile par vibration alert dega
+    showNetworkToastStream(
+        "bg-rose-950 border-rose-800 text-rose-300", 
+        "fa-solid fa-ban", 
+        "सुरक्षा कारणों से राइट-क्लिक ब्लॉक है!"
+    );
+});
+
+// Shortcut Keys (F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U) ko block karne ke liye
+window.addEventListener('keydown', (event) => {
+    if (
+        event.key === 'F12' || 
+        (event.ctrlKey && event.shiftKey && (event.key === 'I' || event.key === 'i' || event.key === 'J' || event.key === 'j' || event.key === 'C' || event.key === 'c')) || 
+        (event.ctrlKey && (event.key === 'U' || event.key === 'u'))
+    ) {
+        event.preventDefault();
+        triggerVibration([80, 50]);
+        showNetworkToastStream(
+            "bg-rose-950 border-rose-800 text-rose-300", 
+            "fa-solid fa-code", 
+            "डेवलपर टूल्स एक्सेस वर्जित है!"
+        );
+    }
+});
+
+// Dropdown control trigger logic
+function handleDistrictChange(districtValue) {
+    const blockSelect = document.getElementById('form-block');
+    
+    // Default/Reset options clean state
+    blockSelect.innerHTML = '<option value="">-- अंचल/ब्लॉक चुनें --</option>';
+    
+    // Agar condition 'सारण' (value="17") sach hoti hai to hi options generate hongi
+    if (districtValue === "17") {
+        const saranBlocks = [
+            { val: "17", name: "अमनौर" },
+            { val: "4",  name: "बनियापुर" },
+            { val: "18", name: "दरियापुर" },
+            { val: "19", name: "दिघवारा" },
+            { val: "6",  name: "एकमा" },
+            { val: "11", name: "गरखा" },
+            { val: "15", name: "इसुवापुर" },
+            { val: "7",  name: "जलालपुर" },
+            { val: "5",  name: "लाहलादपुर" },
+            { val: "9",  name: "मकेर" },
+            { val: "3",  name: "मांझी" },
+            { val: "12", name: "मरहौरा" },
+            { val: "16", name: "मशरख" },
+            { val: "8",  name: "नागरा" },
+            { val: "13", name: "पनापुर" },
+            { val: "10", name: "परसा" },
+            { val: "2",  name: "रिविलगंज" },
+            { val: "1",  name: "सारण सदर" },
+            { val: "20", name: "सोनपुर" },
+            { val: "14", name: "तरैया" }
+        ];
+        
+        saranBlocks.forEach(block => {
+            let opt = document.createElement('option');
+            opt.value = block.val;
+            opt.textContent = block.name;
+            blockSelect.appendChild(opt);
+        });
+    } else {
+        // Agar koi aur jila select kiya to block option reset hokar change selection dikhayega
+        blockSelect.innerHTML = '<option value="">-- इस जिले के ब्लॉक उपलब्ध नहीं हैं --</option>';
+    }
+}
+
+// FIX: Jab user details load ya append ho rhi hon (Submission Summary Box me)
+// To id.value nikalne ki jagah niche diye gaye tareeqe se Text read karein:
+function getSelectedDropdownText(elementId) {
+    const dropdown = document.getElementById(elementId);
+    if(dropdown && dropdown.selectedIndex >= 0) {
+        return dropdown.options[dropdown.selectedIndex].text;
+    }
+    return "";
+}
+
+/* 💡 TIP FOR YOUR EXISTING SUBMISSION CODE:
+Jahan aap details screen par text set kar rahe hain, 
+wahan document.getElementById('form-district').value ki jagah 
+getSelectedDropdownText('form-district') ka use karein. 
+Isse numeric ID ki jagah screen par direct "सारण" aur "मकेर" jaisa naam print hoga!
+*/
+    </script>
+</body>
+</html>
